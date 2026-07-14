@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MikroTik_Device_Manager.managers;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -10,16 +11,18 @@ namespace MikroTik_Device_Manager
 {
     public partial class DeviceManager : Form
     {
-        private Main mainForm;
-        public DeviceManager(Main form)
+        private Main _mainForm;
+        private MikroTikManager _manager;
+        public DeviceManager(Main form, MikroTikManager manager)
         {
             InitializeComponent();
-            mainForm = form;
+            _mainForm = form;
+            _manager = manager;
         }
 
         private void DeviceManager_FormClosed(object sender, FormClosedEventArgs e)
         {
-            mainForm.Show();
+            _mainForm.Show();
         }
     }
 }

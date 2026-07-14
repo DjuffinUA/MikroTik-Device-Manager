@@ -1,4 +1,5 @@
 using MikroTik_Device_Manager.helpers;
+using MikroTik_Device_Manager.managers;
 using MikroTik_Device_Manager.models;
 
 namespace MikroTik_Device_Manager
@@ -17,8 +18,8 @@ namespace MikroTik_Device_Manager
             tB_IP.Clear();
             tB_Login.Clear();
             tB_Password.Clear();
-            tB_Coment.Clear();
-            L_Warring.Text = "";
+            tB_Comment.Clear();
+            L_Warning.Text = "";
             listBox_LoginIP.Items.Clear();
             LoadItemListBox();
         }
@@ -27,14 +28,14 @@ namespace MikroTik_Device_Manager
         {
             ConnectionInfo info = new ConnectionInfo();
 
-            if (tB_IP.Text != "" || tB_Login.Text != "" || tB_Password.Text != "")
+            if (tB_IP.Text != "" && tB_Login.Text != "" && tB_Password.Text != "")
             {
                 info = new ConnectionInfo
                 {
                     Ip = tB_IP.Text,
                     Login = tB_Login.Text,
                     Password = tB_Password.Text,
-                    Comment = tB_Coment.Text,
+                    Comment = tB_Comment.Text,
                 };
             }
             else if (listBox_LoginIP.SelectedIndex != -1)
@@ -43,24 +44,26 @@ namespace MikroTik_Device_Manager
                 info = connections[selectedIndex];
             }
 
-            DeviceManager dm = new DeviceManager(this);
-            dm.Show();
-            ClearControls();
-            this.Hide();
-
-            // listBox_LoginIP.Items.Add(info.Ip + "; " + info.Login + "; " + info.Comment + ";"); // test
+            MikroTikManager manager = new MikroTikManager(info);
+            if(manager.ConnectSSH())
+            {
+                L_Warning.Text = "Connected successfully!";                
+                SettingsManager.AddConnectionInfo(connections, info);
+                DeviceManager dm = new DeviceManager(this, manager);
+                dm.Show();
+                ClearControls();
+                this.Hide();
+            }
+            else
+                L_Warning.Text = manager.LastError;
         }
 
         private void Main_Load(object sender, EventArgs e)
         {
-            if(SettingsManager.SettingsFileExists())
-            {
+            if(SettingsManager.SettingsFileExists()) 
                 LoadItemListBox();
-            }
             else
-            {
                 SettingsManager.CreateJsonFile();
-            }
         }
 
         private void LoadItemListBox()
@@ -68,9 +71,7 @@ namespace MikroTik_Device_Manager
             listBox_LoginIP.Items.Clear();
             connections = SettingsManager.Load();
             for (int i = 0; i < connections.Count; i++)
-            {
                 listBox_LoginIP.Items.Add(connections[i].Ip + "; " + connections[i].Login + "; " + connections[i].Comment + ";");
-            }
             listBox_LoginIP.ClearSelected();
         }
     }

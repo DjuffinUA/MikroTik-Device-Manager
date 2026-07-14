@@ -10,9 +10,9 @@ namespace MikroTik_Device_Manager.helpers
     {
         private static readonly string settingsFilePath = Path.Combine(AppContext.BaseDirectory, "settings.json");
 
-        public static void Save(List<ConnectionInfo> settings)
+        private static void Save(List<ConnectionInfo> connections)
         {
-            string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
+            string json = JsonSerializer.Serialize(connections, new JsonSerializerOptions
                 {
                     WriteIndented = true
                 }
@@ -42,7 +42,16 @@ namespace MikroTik_Device_Manager.helpers
 
         public static void CreateJsonFile()
         {
-            File.WriteAllText(settingsFilePath, "");
+            File.WriteAllText(settingsFilePath, []);
+        }
+
+        public static void AddConnectionInfo(List<ConnectionInfo> connections, ConnectionInfo info)
+        {
+            if (!connections.Exists(c => c.Ip == info.Ip && c.Login == info.Login))
+            {
+                connections.Add(info);
+                Save(connections);
+            }            
         }
     }
 }

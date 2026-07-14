@@ -37,9 +37,9 @@
             tB_Password = new TextBox();
             L_Password = new Label();
             listBox_LoginIP = new ListBox();
-            L_Warring = new Label();
+            L_Warning = new Label();
             L_Coment = new Label();
-            tB_Coment = new TextBox();
+            tB_Comment = new TextBox();
             SuspendLayout();
             // 
             // But_Connect
@@ -116,13 +116,13 @@
             listBox_LoginIP.Size = new Size(378, 193);
             listBox_LoginIP.TabIndex = 10;
             // 
-            // L_Warring
+            // L_Warning
             // 
-            L_Warring.Location = new Point(12, 297);
-            L_Warring.Name = "L_Warring";
-            L_Warring.Size = new Size(783, 25);
-            L_Warring.TabIndex = 11;
-            L_Warring.TextAlign = ContentAlignment.MiddleCenter;
+            L_Warning.Location = new Point(12, 297);
+            L_Warning.Name = "L_Warning";
+            L_Warning.Size = new Size(783, 52);
+            L_Warning.TabIndex = 11;
+            L_Warning.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // L_Coment
             // 
@@ -134,22 +134,22 @@
             L_Coment.TabIndex = 12;
             L_Coment.Text = "Coment :";
             // 
-            // tB_Coment
+            // tB_Comment
             // 
-            tB_Coment.Location = new Point(104, 172);
-            tB_Coment.Margin = new Padding(4);
-            tB_Coment.Name = "tB_Coment";
-            tB_Coment.Size = new Size(202, 29);
-            tB_Coment.TabIndex = 13;
+            tB_Comment.Location = new Point(104, 172);
+            tB_Comment.Margin = new Padding(4);
+            tB_Comment.Name = "tB_Comment";
+            tB_Comment.Size = new Size(202, 29);
+            tB_Comment.TabIndex = 13;
             // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(9F, 21F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(808, 331);
-            Controls.Add(tB_Coment);
+            ClientSize = new Size(808, 358);
+            Controls.Add(tB_Comment);
             Controls.Add(L_Coment);
-            Controls.Add(L_Warring);
+            Controls.Add(L_Warning);
             Controls.Add(listBox_LoginIP);
             Controls.Add(L_Password);
             Controls.Add(tB_Password);
@@ -178,8 +178,8 @@
         private TextBox tB_Password;
         private Label L_Password;
         private ListBox listBox_LoginIP;
-        private Label L_Warring;
+        private Label L_Warning;
         private Label L_Coment;
-        private TextBox tB_Coment;
+        private TextBox tB_Comment;
     }
 }
