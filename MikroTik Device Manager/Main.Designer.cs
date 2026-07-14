@@ -163,15 +163,14 @@
             Margin = new Padding(4);
             Name = "Main";
             Text = "MDM";
+            Load += Main_Load;
             ResumeLayout(false);
             PerformLayout();
         }
 
         #endregion
 
-        private TextBox tB_NetName;
         private Button But_Connect;
-        private Label L_NetName;
         private Label L_Login;
         private TextBox tB_IP;
         private Label L_IP;
