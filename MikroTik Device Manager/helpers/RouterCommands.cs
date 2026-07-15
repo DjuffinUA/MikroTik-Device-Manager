@@ -13,5 +13,10 @@ namespace MikroTik_Device_Manager.helpers
         public const string GetDHCPLeases = "/ip dhcp-server lease print";
 
         public const string GetFirewallAddressesLists = "/ip firewall address-list print";
+
+        public static string GetDHCPLeaseByMAC(string macAddress)
+        {
+            return $"/ip dhcp-server lease print where mac-address=\"{macAddress}\"";
+        }
     }
 }

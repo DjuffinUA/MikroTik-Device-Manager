@@ -1,12 +1,5 @@
 ﻿using MikroTik_Device_Manager.helpers;
 using MikroTik_Device_Manager.managers;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
 
 namespace MikroTik_Device_Manager
 {
@@ -14,6 +7,7 @@ namespace MikroTik_Device_Manager
     {
         private Main _mainForm;
         private MikroTikManager _manager;
+
         public DeviceManager(Main form, MikroTikManager manager)
         {
             InitializeComponent();
@@ -27,7 +21,7 @@ namespace MikroTik_Device_Manager
             _mainForm.Show();
         }
 
-        private void identityToolStripMenuItem_Click(object sender, EventArgs e)
+        private void b_RouterName_Click(object sender, EventArgs e)
         {
             string result = "";
             if (_manager.ExecuteCommand(RouterCommands.GetSystemIdentity, out result))
@@ -36,7 +30,7 @@ namespace MikroTik_Device_Manager
                 tB_Result.Text = _manager.LastError;
         }
 
-        private void leasesToolStripMenuItem_Click(object sender, EventArgs e)
+        private void b_DHCP_ServerLeases_Click(object sender, EventArgs e)
         {
             string result = "";
             if (_manager.ExecuteCommand(RouterCommands.GetDHCPLeases, out result))
@@ -45,13 +39,21 @@ namespace MikroTik_Device_Manager
                 tB_Result.Text = _manager.LastError;
         }
 
-        private void adressListToolStripMenuItem_Click(object sender, EventArgs e)
+        private void b_Firewall_AddressList_Click(object sender, EventArgs e)
         {
             string result = "";
             if (_manager.ExecuteCommand(RouterCommands.GetFirewallAddressesLists, out result))
                 tB_Result.Text = result;
             else
                 tB_Result.Text = _manager.LastError;
+        }
+
+        private void b_FindMAC_Click(object sender, EventArgs e)
+        {
+            Device _form = new Device(this, _manager);
+            _form.Show();
+            this.ControlBox = false;
+            _form.Activate();
         }
     }
 }
