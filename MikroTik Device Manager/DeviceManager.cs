@@ -18,6 +18,7 @@ namespace MikroTik_Device_Manager
         private void DeviceManager_FormClosed(object sender, FormClosedEventArgs e)
         {
             tB_Result.Clear();
+            _manager.Disconnect();
             _mainForm.Show();
         }
 

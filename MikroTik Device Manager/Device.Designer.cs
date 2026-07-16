@@ -43,6 +43,8 @@
             b_AddAddressList = new Button();
             L_AddAddressList = new Label();
             L_AddressList = new Label();
+            L_IP = new Label();
+            L_IP_Now = new Label();
             SuspendLayout();
             // 
             // L_MAC
@@ -76,7 +78,7 @@
             // 
             // b_ClearForm
             // 
-            b_ClearForm.Location = new Point(345, 487);
+            b_ClearForm.Location = new Point(345, 448);
             b_ClearForm.Name = "b_ClearForm";
             b_ClearForm.Size = new Size(97, 33);
             b_ClearForm.TabIndex = 3;
@@ -94,7 +96,7 @@
             // 
             // L_AvailableAction
             // 
-            L_AvailableAction.Location = new Point(12, 540);
+            L_AvailableAction.Location = new Point(12, 523);
             L_AvailableAction.Name = "L_AvailableAction";
             L_AvailableAction.Size = new Size(760, 32);
             L_AvailableAction.TabIndex = 5;
@@ -108,7 +110,7 @@
             tB_Monitor.Name = "tB_Monitor";
             tB_Monitor.ReadOnly = true;
             tB_Monitor.ScrollBars = ScrollBars.Both;
-            tB_Monitor.Size = new Size(760, 292);
+            tB_Monitor.Size = new Size(760, 236);
             tB_Monitor.TabIndex = 6;
             tB_Monitor.WordWrap = false;
             // 
@@ -175,11 +177,31 @@
             L_AddressList.TabIndex = 13;
             L_AddressList.TextAlign = ContentAlignment.MiddleCenter;
             // 
+            // L_IP
+            // 
+            L_IP.Location = new Point(12, 555);
+            L_IP.Name = "L_IP";
+            L_IP.Size = new Size(134, 32);
+            L_IP.TabIndex = 15;
+            L_IP.Text = "IP  :";
+            L_IP.TextAlign = ContentAlignment.MiddleLeft;
+            // 
+            // L_IP_Now
+            // 
+            L_IP_Now.AutoEllipsis = true;
+            L_IP_Now.Location = new Point(166, 555);
+            L_IP_Now.Name = "L_IP_Now";
+            L_IP_Now.Size = new Size(242, 32);
+            L_IP_Now.TabIndex = 16;
+            L_IP_Now.TextAlign = ContentAlignment.MiddleCenter;
+            // 
             // Device
             // 
             AutoScaleDimensions = new SizeF(9F, 21F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(784, 761);
+            Controls.Add(L_IP_Now);
+            Controls.Add(L_IP);
             Controls.Add(L_AddressList);
             Controls.Add(L_AddAddressList);
             Controls.Add(b_AddAddressList);
@@ -222,5 +244,7 @@
         private Button b_AddAddressList;
         private Label L_AddAddressList;
         private Label L_AddressList;
+        private Label L_IP;
+        private Label L_IP_Now;
     }
 }

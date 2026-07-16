@@ -56,5 +56,17 @@ namespace MikroTik_Device_Manager.managers
                 return false;
             }
         }
+
+        public void Disconnect()
+        {
+            if (_ssh == null)
+                return;
+
+            if (_ssh.IsConnected)
+                _ssh.Disconnect();
+
+            _ssh.Dispose();
+            _ssh = null;
+        }
     }
 }
