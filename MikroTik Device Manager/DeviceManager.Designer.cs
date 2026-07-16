@@ -44,7 +44,7 @@
             tB_Result.Name = "tB_Result";
             tB_Result.ReadOnly = true;
             tB_Result.ScrollBars = ScrollBars.Both;
-            tB_Result.Size = new Size(1160, 671);
+            tB_Result.Size = new Size(960, 671);
             tB_Result.TabIndex = 0;
             tB_Result.WordWrap = false;
             // 
@@ -92,7 +92,7 @@
             // 
             AutoScaleDimensions = new SizeF(9F, 21F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1184, 761);
+            ClientSize = new Size(984, 761);
             Controls.Add(b_FindMAC);
             Controls.Add(b_Firewall_AddressList);
             Controls.Add(b_DHCP_ServerLeases);
@@ -116,6 +116,6 @@
         private Button b_RouterName;
         private Button b_DHCP_ServerLeases;
         private Button b_Firewall_AddressList;
-        private Button b_FindMAC;
+        protected internal Button b_FindMAC;
     }
 }

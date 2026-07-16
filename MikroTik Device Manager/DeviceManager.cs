@@ -53,6 +53,7 @@ namespace MikroTik_Device_Manager
             Device _form = new Device(this, _manager);
             _form.Show();
             this.ControlBox = false;
+            b_FindMAC.Enabled = false;
             _form.Activate();
         }
     }

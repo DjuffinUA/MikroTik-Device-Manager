@@ -18,5 +18,10 @@ namespace MikroTik_Device_Manager.helpers
         {
             return $"/ip dhcp-server lease print where mac-address=\"{macAddress}\"";
         }
+
+        public static string GetDynamicOrNot(string macAddress)
+        {
+            return $":put [/ip dhcp-server lease get [find where mac-address=\"{macAddress}\"] dynamic]";
+        }
     }
 }

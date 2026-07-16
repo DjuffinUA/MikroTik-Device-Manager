@@ -1,5 +1,6 @@
 ﻿using MikroTik_Device_Manager.helpers;
 using MikroTik_Device_Manager.managers;
+using MikroTik_Device_Manager.models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -16,7 +17,7 @@ namespace MikroTik_Device_Manager
         private MikroTikManager _manager;
         private List<Control>? controlsVisible;
         private List<Control>? controlsText;
-        private string _MAC {  get; set; } = string.Empty;
+        private string _MAC { get; set; } = string.Empty;
 
         public Device(DeviceManager form, MikroTikManager manager)
         {
@@ -28,7 +29,7 @@ namespace MikroTik_Device_Manager
             {
                 b_ClearForm,
                 L_AvailableAction,
-                b_BoundIP,
+                b_MakeStatic,
                 b_RemoveIP,
                 b_RemoveAddressList,
                 b_AddAddressList,
@@ -68,6 +69,7 @@ namespace MikroTik_Device_Manager
         private void Device_FormClosed(object sender, FormClosedEventArgs e)
         {
             _form.ControlBox = true;
+            _form.b_FindMAC.Enabled = true;
             _form.Activate();
         }
 
@@ -95,17 +97,60 @@ namespace MikroTik_Device_Manager
 
         private void b_Find_Click(object sender, EventArgs e)
         {
+            if(tB_Monitor.Text != string.Empty)
+                NullStatusForm();
+
             if (NormalizeMac())
             {
+                LeaseInfo lease = new LeaseInfo
+                {
+                    Mac = _MAC
+                };
+                List<string>? splitText;
                 string tmp = string.Empty;
-                _manager.ExecuteCommand(RouterCommands.GetDHCPLeaseByMAC(_MAC), out tmp);
-                tB_Monitor.Text = tmp;
+                b_ClearForm.Visible = true;
+                b_ClearForm.Enabled = true;
+
+                if (_manager.ExecuteCommand(RouterCommands.GetDHCPLeaseByMAC(lease.Mac), out tmp))
+                {
+                    splitText = tmp.Split(new[] { "\r\n" }, StringSplitOptions.None).ToList();
+                    StringBuilder sb = new();
+
+                    foreach (string line in splitText)
+                        if (line.Length > 0)
+                            sb.AppendLine(line);
+
+                    if (sb.Length > 0)
+                    {
+                        if (_manager.ExecuteCommand(RouterCommands.GetDynamicOrNot(lease.Mac), out tmp))
+                        {
+                            if (tmp == "true")
+                                lease.Dynamic = true;
+                            else 
+                                lease.Dynamic = false;
+                        }
+                        else
+                            tB_Monitor.Text = _manager.LastError;
+
+                        tB_Monitor.Text = sb.ToString(); // Display the result in the monitor text box
+                    }
+                    else
+                        tB_Monitor.Text = "There is no device with this MAC address.";
+                }
+                else
+                    tB_Monitor.Text = _manager.LastError;
+
             }
             else
             {
                 tB_Monitor.Text = "MAC address entry error";
                 return;
-            }  
+            }
+        }
+
+        private void b_ClearForm_Click(object sender, EventArgs e)
+        {
+            NullStatusForm();
         }
     }
 }

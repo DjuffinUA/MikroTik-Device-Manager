@@ -36,7 +36,7 @@
             comBox_AddAddressList = new ComboBox();
             L_AvailableAction = new Label();
             tB_Monitor = new TextBox();
-            b_BoundIP = new Button();
+            b_MakeStatic = new Button();
             L_TextBoard = new Label();
             b_RemoveIP = new Button();
             b_RemoveAddressList = new Button();
@@ -60,13 +60,13 @@
             tB_Mac.Location = new Point(69, 34);
             tB_Mac.MaxLength = 20;
             tB_Mac.Name = "tB_Mac";
-            tB_Mac.Size = new Size(268, 29);
+            tB_Mac.Size = new Size(158, 29);
             tB_Mac.TabIndex = 1;
             tB_Mac.WordWrap = false;
             // 
             // b_Find
             // 
-            b_Find.Location = new Point(400, 31);
+            b_Find.Location = new Point(600, 30);
             b_Find.Name = "b_Find";
             b_Find.Size = new Size(172, 33);
             b_Find.TabIndex = 2;
@@ -76,12 +76,13 @@
             // 
             // b_ClearForm
             // 
-            b_ClearForm.Location = new Point(245, 483);
+            b_ClearForm.Location = new Point(345, 487);
             b_ClearForm.Name = "b_ClearForm";
             b_ClearForm.Size = new Size(97, 33);
             b_ClearForm.TabIndex = 3;
             b_ClearForm.Text = "Clear Form";
             b_ClearForm.UseVisualStyleBackColor = true;
+            b_ClearForm.Click += b_ClearForm_Click;
             // 
             // comBox_AddAddressList
             // 
@@ -95,7 +96,7 @@
             // 
             L_AvailableAction.Location = new Point(12, 540);
             L_AvailableAction.Name = "L_AvailableAction";
-            L_AvailableAction.Size = new Size(560, 32);
+            L_AvailableAction.Size = new Size(760, 32);
             L_AvailableAction.TabIndex = 5;
             L_AvailableAction.Text = "Available actions";
             L_AvailableAction.TextAlign = ContentAlignment.MiddleCenter;
@@ -107,31 +108,31 @@
             tB_Monitor.Name = "tB_Monitor";
             tB_Monitor.ReadOnly = true;
             tB_Monitor.ScrollBars = ScrollBars.Both;
-            tB_Monitor.Size = new Size(560, 292);
+            tB_Monitor.Size = new Size(760, 292);
             tB_Monitor.TabIndex = 6;
             tB_Monitor.WordWrap = false;
             // 
-            // b_BoundIP
+            // b_MakeStatic
             // 
-            b_BoundIP.Location = new Point(12, 590);
-            b_BoundIP.Name = "b_BoundIP";
-            b_BoundIP.Size = new Size(242, 33);
-            b_BoundIP.TabIndex = 7;
-            b_BoundIP.Text = "Bound IP";
-            b_BoundIP.UseVisualStyleBackColor = true;
+            b_MakeStatic.Location = new Point(12, 590);
+            b_MakeStatic.Name = "b_MakeStatic";
+            b_MakeStatic.Size = new Size(242, 33);
+            b_MakeStatic.TabIndex = 7;
+            b_MakeStatic.Text = "Make Static";
+            b_MakeStatic.UseVisualStyleBackColor = true;
             // 
             // L_TextBoard
             // 
             L_TextBoard.Location = new Point(12, 104);
             L_TextBoard.Name = "L_TextBoard";
-            L_TextBoard.Size = new Size(560, 21);
+            L_TextBoard.Size = new Size(760, 21);
             L_TextBoard.TabIndex = 8;
             L_TextBoard.Text = "Detailed information by MAC address";
             L_TextBoard.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // b_RemoveIP
             // 
-            b_RemoveIP.Location = new Point(330, 590);
+            b_RemoveIP.Location = new Point(530, 590);
             b_RemoveIP.Name = "b_RemoveIP";
             b_RemoveIP.Size = new Size(242, 33);
             b_RemoveIP.TabIndex = 9;
@@ -140,7 +141,7 @@
             // 
             // b_RemoveAddressList
             // 
-            b_RemoveAddressList.Location = new Point(408, 688);
+            b_RemoveAddressList.Location = new Point(608, 688);
             b_RemoveAddressList.Name = "b_RemoveAddressList";
             b_RemoveAddressList.Size = new Size(164, 33);
             b_RemoveAddressList.TabIndex = 10;
@@ -149,7 +150,7 @@
             // 
             // b_AddAddressList
             // 
-            b_AddAddressList.Location = new Point(284, 688);
+            b_AddAddressList.Location = new Point(345, 691);
             b_AddAddressList.Name = "b_AddAddressList";
             b_AddAddressList.Size = new Size(97, 33);
             b_AddAddressList.TabIndex = 11;
@@ -178,14 +179,14 @@
             // 
             AutoScaleDimensions = new SizeF(9F, 21F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(584, 761);
+            ClientSize = new Size(784, 761);
             Controls.Add(L_AddressList);
             Controls.Add(L_AddAddressList);
             Controls.Add(b_AddAddressList);
             Controls.Add(b_RemoveAddressList);
             Controls.Add(b_RemoveIP);
             Controls.Add(L_TextBoard);
-            Controls.Add(b_BoundIP);
+            Controls.Add(b_MakeStatic);
             Controls.Add(tB_Monitor);
             Controls.Add(L_AvailableAction);
             Controls.Add(comBox_AddAddressList);
@@ -214,7 +215,7 @@
         private ComboBox comBox_AddAddressList;
         private Label L_AvailableAction;
         private TextBox tB_Monitor;
-        private Button b_BoundIP;
+        private Button b_MakeStatic;
         private Label L_TextBoard;
         private Button b_RemoveIP;
         private Button b_RemoveAddressList;
