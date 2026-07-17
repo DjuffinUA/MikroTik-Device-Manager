@@ -1,22 +1,17 @@
 ﻿using MikroTik_Device_Manager.helpers;
 using MikroTik_Device_Manager.managers;
 using MikroTik_Device_Manager.models;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Text;
-using System.Windows.Forms;
 
 namespace MikroTik_Device_Manager
 {
     public partial class Device : Form
     {
-        private DeviceManager _form;
-        private MikroTikManager _manager;
-        private List<Control>? controlsVisible;
-        private List<Control>? controlsText;
+        private readonly DeviceManager _form;
+        private readonly MikroTikManager _manager;
+        private readonly List<Control> controlsVisible;
+        private readonly List<Control> controlsText;
+        private readonly Dictionary<Control, bool> _enabledStates = new();
         private string _MAC { get; set; } = string.Empty;
 
         public Device(DeviceManager form, MikroTikManager manager)
@@ -51,18 +46,36 @@ namespace MikroTik_Device_Manager
 
         private void NullStatusForm()
         {
-            if (controlsText != null)
-                foreach (Control control in controlsText)
-                {
-                    control.Text = string.Empty;
-                }
+            foreach (Control control in controlsText)
+                control.Text = string.Empty;
 
-            if (controlsVisible != null)
-                foreach (Control control in controlsVisible)
-                {
-                    control.Visible = false;
-                    control.Enabled = false;
-                }
+            foreach (Control control in controlsVisible)
+            {
+                control.Visible = false;
+                control.Enabled = false;
+            }
+        }
+
+        private void LockControls()
+        {
+            _enabledStates.Clear();
+
+            foreach (Control control in Controls)
+            {
+                _enabledStates[control] = control.Enabled;
+                control.Enabled = false;
+            }
+        }
+
+        private void UnlockControls()
+        {
+            foreach (Control control in Controls)
+            {
+                if (_enabledStates.TryGetValue(control, out bool wasEnabled))
+                    control.Enabled = wasEnabled;
+            }
+
+            _enabledStates.Clear();
         }
 
         private void Device_FormClosed(object sender, FormClosedEventArgs e)
@@ -81,18 +94,15 @@ namespace MikroTik_Device_Manager
             foreach (char c in mac)
             {
                 if (validChars.Contains(c))
-                {
                     tmp.Add(c);
-                }
             }
-            if (tmp.Count == 12)
-            {
-                _MAC = $"{tmp[0]}{tmp[1]}:{tmp[2]}{tmp[3]}:{tmp[4]}{tmp[5]}:{tmp[6]}{tmp[7]}:{tmp[8]}{tmp[9]}:{tmp[10]}{tmp[11]}";
-                tB_Mac.Text = _MAC;
-                return true;
-            }
-            else
+
+            if (tmp.Count != 12)
                 return false;
+
+            _MAC = $"{tmp[0]}{tmp[1]}:{tmp[2]}{tmp[3]}:{tmp[4]}{tmp[5]}:{tmp[6]}{tmp[7]}:{tmp[8]}{tmp[9]}:{tmp[10]}{tmp[11]}";
+            tB_Mac.Text = _MAC;
+            return true;
         }
 
         private async void b_Find_Click(object sender, EventArgs e)
@@ -102,6 +112,20 @@ namespace MikroTik_Device_Manager
 
         private async Task RefreshLeaseInfoAsync()
         {
+            LockControls();
+
+            try
+            {
+                await RefreshLeaseInfoCoreAsync();
+            }
+            finally
+            {
+                UnlockControls();
+            }
+        }
+
+        private async Task RefreshLeaseInfoCoreAsync()
+        {
             NullStatusForm();
 
             if (!NormalizeMac())
@@ -109,8 +133,6 @@ namespace MikroTik_Device_Manager
                 tB_Monitor.Text = "MAC address entry error";
                 return;
             }
-
-            string tmp = string.Empty;
 
             b_ClearForm.Visible = true;
             b_ClearForm.Enabled = true;
@@ -124,15 +146,9 @@ namespace MikroTik_Device_Manager
                 return;
             }
 
-            tmp = response.Result;
-
-            List<string> splitText = tmp
-                .Split(new[] { "\r\n" }, StringSplitOptions.None)
-                .ToList();
-
             StringBuilder sb = new();
 
-            foreach (string line in splitText)
+            foreach (string line in response.Result.Split(new[] { "\r\n" }, StringSplitOptions.None))
             {
                 if (line.Length > 0)
                     sb.AppendLine(line);
@@ -147,25 +163,23 @@ namespace MikroTik_Device_Manager
             L_TextBoard.Visible = true;
             L_TextBoard.Enabled = true;
 
-            LeaseInfo lease = new LeaseInfo(_MAC);
+            LeaseInfo lease = new(_MAC);
 
-            if (!lease.FillLeaseInfo(_manager))
+            if (!await lease.FillLeaseInfoAsync(_manager))
             {
                 tB_Monitor.Text = _manager.LastError;
                 return;
             }
 
             sb.AppendLine(lease.ShowInfo());
-
-            FillLeaseInfo(lease);
-
+            await FillLeaseInfoAsync(lease);
             tB_Monitor.Text = sb.ToString();
         }
 
         /// <summary>
-        /// Заповнює елементи форми відповідно до стану DHCP Lease.
+        /// Заповнює елементи форми відповідно до актуального стану DHCP Lease.
         /// </summary>
-        private void FillLeaseInfo(LeaseInfo lease)
+        private async Task FillLeaseInfoAsync(LeaseInfo lease)
         {
             L_IP.Visible = true;
             L_IP.Enabled = true;
@@ -185,7 +199,6 @@ namespace MikroTik_Device_Manager
             {
                 b_MakeStatic.Visible = true;
                 b_MakeStatic.Enabled = true;
-
                 return;
             }
 
@@ -194,19 +207,18 @@ namespace MikroTik_Device_Manager
 
             if (lease.AddressList == "not list")
             {
-                LoadAddressLists();
+                await LoadAddressListsAsync();
 
                 comBox_AddAddressList.Visible = true;
                 comBox_AddAddressList.Enabled = true;
 
                 b_AddAddressList.Visible = true;
                 b_AddAddressList.Enabled = true;
+                return;
             }
-            else
-            {
-                b_RemoveAddressList.Visible = true;
-                b_RemoveAddressList.Enabled = true;
-            }
+
+            b_RemoveAddressList.Visible = true;
+            b_RemoveAddressList.Enabled = true;
         }
 
         private async Task LoadAddressListsAsync()
@@ -231,39 +243,49 @@ namespace MikroTik_Device_Manager
                 comBox_AddAddressList.Items.Add(line);
         }
 
-        private void b_ClearForm_Click(object sender, EventArgs e)
+        private async void b_ClearForm_Click(object sender, EventArgs e)
         {
+            await Task.CompletedTask;
             NullStatusForm();
             _MAC = string.Empty;
             tB_Mac.Clear();
         }
 
-        private void ExecuteAndRefresh(string command)
+        private async Task ExecuteAndRefreshAsync(string command)
         {
-            if (_manager.ExecuteCommand(command))
-                RefreshLeaseInfo();
-            else
-                tB_Monitor.AppendText(Environment.NewLine + _manager.LastError);
+            LockControls();
+
+            try
+            {
+                if (await _manager.ExecuteCommandAsync(command))
+                    await RefreshLeaseInfoCoreAsync();
+                else
+                    tB_Monitor.AppendText(Environment.NewLine + _manager.LastError);
+            }
+            finally
+            {
+                UnlockControls();
+            }
         }
 
-        private void b_MakeStatic_Click(object sender, EventArgs e)
+        private async void b_MakeStatic_Click(object sender, EventArgs e)
         {
-            ExecuteAndRefresh(RouterCommands.MakeStatic(_MAC));
+            await ExecuteAndRefreshAsync(RouterCommands.MakeStatic(_MAC));
         }
 
-        private void b_RemoveIP_Click(object sender, EventArgs e)
+        private async void b_RemoveIP_Click(object sender, EventArgs e)
         {
-            ExecuteAndRefresh(RouterCommands.RemoveLease(_MAC));
+            await ExecuteAndRefreshAsync(RouterCommands.RemoveLease(_MAC));
         }
 
-        private void b_AddAddressList_Click(object sender, EventArgs e)
+        private async void b_AddAddressList_Click(object sender, EventArgs e)
         {
-            ExecuteAndRefresh(RouterCommands.SetAddressList(_MAC, comBox_AddAddressList.Text));
+            await ExecuteAndRefreshAsync(RouterCommands.SetAddressList(_MAC, comBox_AddAddressList.Text));
         }
 
-        private void b_RemoveAddressList_Click(object sender, EventArgs e)
+        private async void b_RemoveAddressList_Click(object sender, EventArgs e)
         {
-            ExecuteAndRefresh(RouterCommands.ClearAddressList(_MAC));
+            await ExecuteAndRefreshAsync(RouterCommands.ClearAddressList(_MAC));
         }
     }
 }

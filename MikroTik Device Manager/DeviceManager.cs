@@ -5,14 +5,37 @@ namespace MikroTik_Device_Manager
 {
     public partial class DeviceManager : Form
     {
-        private Main _mainForm;
-        private MikroTikManager _manager;
+        private readonly Main _mainForm;
+        private readonly MikroTikManager _manager;
+        private readonly Dictionary<Control, bool> _enabledStates = new();
 
         public DeviceManager(Main form, MikroTikManager manager)
         {
             InitializeComponent();
             _mainForm = form;
             _manager = manager;
+        }
+
+        private void LockControls()
+        {
+            _enabledStates.Clear();
+
+            foreach (Control control in Controls)
+            {
+                _enabledStates[control] = control.Enabled;
+                control.Enabled = false;
+            }
+        }
+
+        private void UnlockControls()
+        {
+            foreach (Control control in Controls)
+            {
+                if (_enabledStates.TryGetValue(control, out bool wasEnabled))
+                    control.Enabled = wasEnabled;
+            }
+
+            _enabledStates.Clear();
         }
 
         private void DeviceManager_FormClosed(object sender, FormClosedEventArgs e)
@@ -22,38 +45,43 @@ namespace MikroTik_Device_Manager
             _mainForm.Show();
         }
 
-        private void b_RouterName_Click(object sender, EventArgs e)
+        private async Task ExecuteCommandToResultAsync(string command)
         {
-            string result = "";
-            if (_manager.ExecuteCommand(RouterCommands.GetSystemIdentity, out result))
-                tB_Result.Text = result;
-            else
-                tB_Result.Text = _manager.LastError;
+            LockControls();
+
+            try
+            {
+                var response = await _manager.ExecuteCommandWithResultAsync(command);
+                tB_Result.Text = response.Success ? response.Result : _manager.LastError;
+            }
+            finally
+            {
+                UnlockControls();
+            }
         }
 
-        private void b_DHCP_ServerLeases_Click(object sender, EventArgs e)
+        private async void b_RouterName_Click(object sender, EventArgs e)
         {
-            string result = "";
-            if (_manager.ExecuteCommand(RouterCommands.GetDHCPLeases, out result))
-                tB_Result.Text = result;
-            else
-                tB_Result.Text = _manager.LastError;
+            await ExecuteCommandToResultAsync(RouterCommands.GetSystemIdentity);
         }
 
-        private void b_Firewall_AddressList_Click(object sender, EventArgs e)
+        private async void b_DHCP_ServerLeases_Click(object sender, EventArgs e)
         {
-            string result = "";
-            if (_manager.ExecuteCommand(RouterCommands.GetFirewallAddressesLists, out result))
-                tB_Result.Text = result;
-            else
-                tB_Result.Text = _manager.LastError;
+            await ExecuteCommandToResultAsync(RouterCommands.GetDHCPLeases);
         }
 
-        private void b_FindMAC_Click(object sender, EventArgs e)
+        private async void b_Firewall_AddressList_Click(object sender, EventArgs e)
         {
-            Device _form = new Device(this, _manager);
+            await ExecuteCommandToResultAsync(RouterCommands.GetFirewallAddressesLists);
+        }
+
+        private async void b_FindMAC_Click(object sender, EventArgs e)
+        {
+            await Task.CompletedTask;
+
+            Device _form = new(this, _manager);
             _form.Show();
-            this.ControlBox = false;
+            ControlBox = false;
             b_FindMAC.Enabled = false;
             _form.Activate();
         }
