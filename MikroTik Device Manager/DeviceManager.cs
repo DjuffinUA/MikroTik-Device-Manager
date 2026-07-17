@@ -1,12 +1,18 @@
-﻿using MikroTik_Device_Manager.helpers;
+using MikroTik_Device_Manager.helpers;
 using MikroTik_Device_Manager.managers;
 
 namespace MikroTik_Device_Manager
 {
+    /// <summary>
+    /// Основне робоче вікно після підключення до MikroTik: виконує типові команди та відкриває пошук за MAC.
+    /// </summary>
     public partial class DeviceManager : Form
     {
+        // Посилання на головну форму, щоб повернути її після закриття цього вікна.
         private readonly Main _mainForm;
+        // Спільний менеджер SSH-з'єднання, який передається дочірнім формам.
         private readonly MikroTikManager _manager;
+        // Зберігає стан кнопок і полів під час виконання команди на роутері.
         private readonly Dictionary<Control, bool> _enabledStates = new();
 
         public DeviceManager(Main form, MikroTikManager manager)
@@ -16,6 +22,9 @@ namespace MikroTik_Device_Manager
             _manager = manager;
         }
 
+        /// <summary>
+        /// Блокує UI на час SSH-команди, щоб уникнути паралельних натискань.
+        /// </summary>
         private void LockControls()
         {
             _enabledStates.Clear();
@@ -27,6 +36,9 @@ namespace MikroTik_Device_Manager
             }
         }
 
+        /// <summary>
+        /// Повертає елементи UI у той стан, який був до блокування.
+        /// </summary>
         private void UnlockControls()
         {
             foreach (Control control in Controls)
@@ -38,6 +50,9 @@ namespace MikroTik_Device_Manager
             _enabledStates.Clear();
         }
 
+        /// <summary>
+        /// При закритті вікна очищає результат, розриває SSH-з'єднання та повертає головну форму.
+        /// </summary>
         private void DeviceManager_FormClosed(object sender, FormClosedEventArgs e)
         {
             tB_Result.Clear();
@@ -45,6 +60,9 @@ namespace MikroTik_Device_Manager
             _mainForm.Show();
         }
 
+        /// <summary>
+        /// Виконує команду RouterOS і виводить відповідь або помилку у поле результату.
+        /// </summary>
         private async Task ExecuteCommandToResultAsync(string command)
         {
             LockControls();
@@ -60,21 +78,33 @@ namespace MikroTik_Device_Manager
             }
         }
 
+        /// <summary>
+        /// Показує системну identity-назву роутера.
+        /// </summary>
         private async void b_RouterName_Click(object sender, EventArgs e)
         {
             await ExecuteCommandToResultAsync(RouterCommands.GetSystemIdentity);
         }
 
+        /// <summary>
+        /// Показує поточні DHCP leases.
+        /// </summary>
         private async void b_DHCP_ServerLeases_Click(object sender, EventArgs e)
         {
             await ExecuteCommandToResultAsync(RouterCommands.GetDHCPLeases);
         }
 
+        /// <summary>
+        /// Показує записи firewall address-list.
+        /// </summary>
         private async void b_Firewall_AddressList_Click(object sender, EventArgs e)
         {
             await ExecuteCommandToResultAsync(RouterCommands.GetFirewallAddressesLists);
         }
 
+        /// <summary>
+        /// Відкриває дочірню форму для пошуку та редагування lease за MAC-адресою.
+        /// </summary>
         private async void b_FindMAC_Click(object sender, EventArgs e)
         {
             await Task.CompletedTask;

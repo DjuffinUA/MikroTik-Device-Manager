@@ -1,17 +1,26 @@
-﻿using MikroTik_Device_Manager.helpers;
+using MikroTik_Device_Manager.helpers;
 using MikroTik_Device_Manager.managers;
 using MikroTik_Device_Manager.models;
 using System.Text;
 
 namespace MikroTik_Device_Manager
 {
+    /// <summary>
+    /// Дочірня форма для пошуку DHCP lease за MAC-адресою та виконання дій над знайденим пристроєм.
+    /// </summary>
     public partial class Device : Form
     {
+        // Батьківська форма, яку потрібно розблокувати після закриття цього вікна.
         private readonly DeviceManager _form;
+        // SSH-менеджер для запитів і змін на MikroTik.
         private readonly MikroTikManager _manager;
+        // Контроли, які приховуються до того моменту, поки lease не буде знайдений.
         private readonly List<Control> controlsVisible;
+        // Контроли з текстом, який потрібно очищати при скиданні форми.
         private readonly List<Control> controlsText;
+        // Зберігає Enabled-стан контролів під час асинхронного звернення до роутера.
         private readonly Dictionary<Control, bool> _enabledStates = new();
+        // Нормалізована MAC-адреса у форматі RouterOS: XX:XX:XX:XX:XX:XX.
         private string _MAC { get; set; } = string.Empty;
 
         public Device(DeviceManager form, MikroTikManager manager)
@@ -44,6 +53,9 @@ namespace MikroTik_Device_Manager
             NullStatusForm();
         }
 
+        /// <summary>
+        /// Скидає форму до початкового стану: очищає текст і ховає кнопки дій.
+        /// </summary>
         private void NullStatusForm()
         {
             foreach (Control control in controlsText)
@@ -56,6 +68,9 @@ namespace MikroTik_Device_Manager
             }
         }
 
+        /// <summary>
+        /// Блокує всі елементи форми на час виконання SSH-запиту.
+        /// </summary>
         private void LockControls()
         {
             _enabledStates.Clear();
@@ -67,6 +82,9 @@ namespace MikroTik_Device_Manager
             }
         }
 
+        /// <summary>
+        /// Відновлює доступність елементів після завершення SSH-запиту.
+        /// </summary>
         private void UnlockControls()
         {
             foreach (Control control in Controls)
@@ -78,6 +96,9 @@ namespace MikroTik_Device_Manager
             _enabledStates.Clear();
         }
 
+        /// <summary>
+        /// Повертає керування батьківській формі після закриття пошуку за MAC.
+        /// </summary>
         private void Device_FormClosed(object sender, FormClosedEventArgs e)
         {
             _form.ControlBox = true;
@@ -85,6 +106,9 @@ namespace MikroTik_Device_Manager
             _form.Activate();
         }
 
+        /// <summary>
+        /// Очищає введення від розділювачів, перевіряє 12 hex-символів і приводить MAC до стандартного формату.
+        /// </summary>
         private bool NormalizeMac()
         {
             string mac = tB_Mac.Text.Trim().ToUpper();
@@ -105,11 +129,17 @@ namespace MikroTik_Device_Manager
             return true;
         }
 
+        /// <summary>
+        /// Запускає оновлення інформації про lease для введеної MAC-адреси.
+        /// </summary>
         private async void b_Find_Click(object sender, EventArgs e)
         {
             await RefreshLeaseInfoAsync();
         }
 
+        /// <summary>
+        /// Публічна для обробників обгортка: блокує UI та викликає основну логіку оновлення.
+        /// </summary>
         private async Task RefreshLeaseInfoAsync()
         {
             LockControls();
@@ -124,6 +154,9 @@ namespace MikroTik_Device_Manager
             }
         }
 
+        /// <summary>
+        /// Шукає lease на роутері, завантажує деталі та оновлює доступні дії у формі.
+        /// </summary>
         private async Task RefreshLeaseInfoCoreAsync()
         {
             NullStatusForm();
@@ -221,6 +254,9 @@ namespace MikroTik_Device_Manager
             b_RemoveAddressList.Enabled = true;
         }
 
+        /// <summary>
+        /// Завантажує з роутера назви address-list і додає їх у ComboBox для вибору.
+        /// </summary>
         private async Task LoadAddressListsAsync()
         {
             comBox_AddAddressList.Items.Clear();
@@ -243,6 +279,9 @@ namespace MikroTik_Device_Manager
                 comBox_AddAddressList.Items.Add(line);
         }
 
+        /// <summary>
+        /// Очищає форму та забуває поточну MAC-адресу.
+        /// </summary>
         private async void b_ClearForm_Click(object sender, EventArgs e)
         {
             await Task.CompletedTask;
@@ -251,6 +290,9 @@ namespace MikroTik_Device_Manager
             tB_Mac.Clear();
         }
 
+        /// <summary>
+        /// Виконує зміну на роутері, а після успіху повторно завантажує актуальний стан lease.
+        /// </summary>
         private async Task ExecuteAndRefreshAsync(string command)
         {
             LockControls();
@@ -268,21 +310,33 @@ namespace MikroTik_Device_Manager
             }
         }
 
+        /// <summary>
+        /// Робить знайдений DHCP lease статичним.
+        /// </summary>
         private async void b_MakeStatic_Click(object sender, EventArgs e)
         {
             await ExecuteAndRefreshAsync(RouterCommands.MakeStatic(_MAC));
         }
 
+        /// <summary>
+        /// Видаляє знайдений DHCP lease з роутера.
+        /// </summary>
         private async void b_RemoveIP_Click(object sender, EventArgs e)
         {
             await ExecuteAndRefreshAsync(RouterCommands.RemoveLease(_MAC));
         }
 
+        /// <summary>
+        /// Додає вибраний address-list до знайденого lease.
+        /// </summary>
         private async void b_AddAddressList_Click(object sender, EventArgs e)
         {
             await ExecuteAndRefreshAsync(RouterCommands.SetAddressList(_MAC, comBox_AddAddressList.Text));
         }
 
+        /// <summary>
+        /// Очищає address-list у знайденому lease.
+        /// </summary>
         private async void b_RemoveAddressList_Click(object sender, EventArgs e)
         {
             await ExecuteAndRefreshAsync(RouterCommands.ClearAddressList(_MAC));
