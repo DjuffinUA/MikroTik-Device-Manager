@@ -1,4 +1,4 @@
-﻿using MikroTik_Device_Manager.models;
+using MikroTik_Device_Manager.models;
 using Renci.SshNet;
 using System;
 using System.Threading.Tasks;
@@ -7,14 +7,22 @@ using System.Text;
 
 namespace MikroTik_Device_Manager.managers
 {
+    /// <summary>
+    /// Керує SSH-з'єднанням із MikroTik RouterOS та виконує команди на роутері.
+    /// </summary>
     public class MikroTikManager(models.ConnectionInfo info)
     {
+        // Активний SSH-клієнт. Null означає, що підключення ще не створене або вже закрите.
         private SshClient? _ssh;
 
+        // Остання помилка, яку можна показати користувачу після невдалої операції.
         public string LastError { get; private set; } = "";
 
         #region Connection
 
+        /// <summary>
+        /// Створює SSH-підключення за даними, переданими у ConnectionInfo.
+        /// </summary>
         public bool ConnectSSH()
         {
             _ssh = new SshClient(info.Ip, info.Login, info.Password);
@@ -32,17 +40,23 @@ namespace MikroTik_Device_Manager.managers
             }
         }
 
-        // Асинхронна обгортка
+        // Асинхронна обгортка, щоб не блокувати WinForms UI під час підключення.
         public Task<bool> ConnectSSHAsync()
         {
             return Task.Run(ConnectSSH);
         }
 
+        /// <summary>
+        /// Перевіряє, чи створений SSH-клієнт і чи він зараз підключений.
+        /// </summary>
         public bool IsConnected()
         {
             return _ssh is not null && _ssh.IsConnected;
         }
 
+        /// <summary>
+        /// Коректно завершує SSH-сесію та звільняє ресурси клієнта.
+        /// </summary>
         public void Disconnect()
         {
             if (_ssh == null)
@@ -59,6 +73,9 @@ namespace MikroTik_Device_Manager.managers
 
         #region Commands
 
+        /// <summary>
+        /// Виконує команду RouterOS, коли потрібен лише факт успішного виконання.
+        /// </summary>
         private bool ExecuteCommandCore(string command)
         {
             LastError = "";
@@ -82,11 +99,17 @@ namespace MikroTik_Device_Manager.managers
             }
         }
 
+        /// <summary>
+        /// Запускає команду у фоновому потоці, щоб форма залишалась відповідальною.
+        /// </summary>
         public Task<bool> ExecuteCommandAsync(string command)
         {
             return Task.Run(() => ExecuteCommandCore(command));
         }
 
+        /// <summary>
+        /// Виконує команду RouterOS і повертає текстову відповідь роутера.
+        /// </summary>
         private (bool Success, string Result) ExecuteCommandWithResultCore(string command)
         {
             if (!IsConnected())
@@ -109,6 +132,9 @@ namespace MikroTik_Device_Manager.managers
             }
         }
 
+        /// <summary>
+        /// Асинхронно виконує команду та повертає її результат для відображення у UI.
+        /// </summary>
         public Task<(bool Success, string Result)> ExecuteCommandWithResultAsync(string command)
         {
             return Task.Run(() => ExecuteCommandWithResultCore(command));

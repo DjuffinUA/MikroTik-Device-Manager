@@ -4,9 +4,14 @@ using MikroTik_Device_Manager.models;
 
 namespace MikroTik_Device_Manager
 {
+    /// <summary>
+    /// Головна форма: збирає дані для підключення, завантажує збережені профілі та відкриває панель керування роутером.
+    /// </summary>
     public partial class Main : Form
     {
+        // Кеш збережених підключень, який синхронізується з settings.json.
         private List<ConnectionInfo> connections = new List<ConnectionInfo>();
+        // Запам'ятовує попередній стан Enabled для контролів під час довгих SSH-операцій.
         private readonly Dictionary<Control, bool> _enabledStates = new();
 
         public Main()
@@ -14,6 +19,9 @@ namespace MikroTik_Device_Manager
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Очищає поля введення та оновлює список збережених підключень після успішного входу.
+        /// </summary>
         private void ClearControls()
         {
             tB_IP.Clear();
@@ -25,6 +33,9 @@ namespace MikroTik_Device_Manager
             LoadItemListBox();
         }
 
+        /// <summary>
+        /// Тимчасово блокує всі елементи форми, щоб користувач не запустив кілька підключень одночасно.
+        /// </summary>
         private void LockControls()
         {
             _enabledStates.Clear();
@@ -36,6 +47,9 @@ namespace MikroTik_Device_Manager
             }
         }
 
+        /// <summary>
+        /// Відновлює стан елементів форми після завершення фонової операції.
+        /// </summary>
         private void UnlockControls()
         {
             foreach (Control control in Controls)
@@ -47,6 +61,9 @@ namespace MikroTik_Device_Manager
             _enabledStates.Clear();
         }
 
+        /// <summary>
+        /// Обробляє натискання Connect: бере дані з полів або вибраного профілю та пробує відкрити SSH-сесію.
+        /// </summary>
         private async void But_Connect_Click(object sender, EventArgs e)
         {
             ConnectionInfo info = new ConnectionInfo();
@@ -91,6 +108,9 @@ namespace MikroTik_Device_Manager
             }
         }
 
+        /// <summary>
+        /// Під час старту форми завантажує settings.json або створює його, якщо це перший запуск.
+        /// </summary>
         private void Main_Load(object sender, EventArgs e)
         {
             if(SettingsManager.SettingsFileExists()) 
@@ -99,6 +119,9 @@ namespace MikroTik_Device_Manager
                 SettingsManager.CreateJsonFile();
         }
 
+        /// <summary>
+        /// Перечитує список підключень із файлу та показує їх у ListBox.
+        /// </summary>
         private void LoadItemListBox()
         {
             listBox_LoginIP.Items.Clear();
