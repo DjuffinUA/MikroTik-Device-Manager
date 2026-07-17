@@ -7,6 +7,7 @@ namespace MikroTik_Device_Manager
     public partial class Main : Form
     {
         private List<ConnectionInfo> connections = new List<ConnectionInfo>();
+        private readonly Dictionary<Control, bool> _enabledStates = new();
 
         public Main()
         {
@@ -24,7 +25,29 @@ namespace MikroTik_Device_Manager
             LoadItemListBox();
         }
 
-        private void But_Connect_Click(object sender, EventArgs e)
+        private void LockControls()
+        {
+            _enabledStates.Clear();
+
+            foreach (Control control in Controls)
+            {
+                _enabledStates[control] = control.Enabled;
+                control.Enabled = false;
+            }
+        }
+
+        private void UnlockControls()
+        {
+            foreach (Control control in Controls)
+            {
+                if (_enabledStates.TryGetValue(control, out bool wasEnabled))
+                    control.Enabled = wasEnabled;
+            }
+
+            _enabledStates.Clear();
+        }
+
+        private async void But_Connect_Click(object sender, EventArgs e)
         {
             ConnectionInfo info = new ConnectionInfo();
 
@@ -38,24 +61,34 @@ namespace MikroTik_Device_Manager
                     Comment = tB_Comment.Text,
                 };
             }
-            else if (listBox_LoginIP.SelectedIndex != -1)
+            else if (listBox_LoginIP.SelectedIndex >= 0 && listBox_LoginIP.SelectedIndex < connections.Count)
             {
-                int selectedIndex = listBox_LoginIP.SelectedIndex;
-                info = connections[selectedIndex];
+                info = connections[listBox_LoginIP.SelectedIndex];
             }
 
             MikroTikManager manager = new MikroTikManager(info);
-            if(manager.ConnectSSH())
+            LockControls();
+
+            try
             {
-                L_Warning.Text = "Connected successfully!";                
-                SettingsManager.AddConnectionInfo(connections, info);
-                DeviceManager dm = new DeviceManager(this, manager);
-                dm.Show();
-                ClearControls();
-                this.Hide();
+                if (await manager.ConnectSSHAsync())
+                {
+                    L_Warning.Text = "Connected successfully!";
+                    SettingsManager.AddConnectionInfo(connections, info);
+                    DeviceManager dm = new DeviceManager(this, manager);
+                    dm.Show();
+                    ClearControls();
+                    Hide();
+                }
+                else
+                {
+                    L_Warning.Text = manager.LastError;
+                }
             }
-            else
-                L_Warning.Text = manager.LastError;
+            finally
+            {
+                UnlockControls();
+            }
         }
 
         private void Main_Load(object sender, EventArgs e)
