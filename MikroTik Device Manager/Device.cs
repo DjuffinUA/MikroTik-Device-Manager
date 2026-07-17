@@ -103,7 +103,7 @@ namespace MikroTik_Device_Manager
         private void HandleBrokenConnection()
         {
             MessageBox.Show(
-                "Router is not responding.\n\nThe SSH connection has been terminated.\n\nPlease reconnect to continue working.",
+                "Маршрутизатор не відповідає.\n\nSSH-з’єднання перервано.\n\nБудь ласка, підключіться знову, щоб продовжити роботу",
                 "SSH connection lost",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);

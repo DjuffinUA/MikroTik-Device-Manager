@@ -25,7 +25,7 @@ namespace MikroTik_Device_Manager.managers
     {
         private const int NormalTimeoutSeconds = 3;
         private const int CriticalTimeoutSeconds = 15;
-        private const string ConnectionBrokenMessage = "Router is not responding. The SSH connection has been terminated. Please reconnect to continue working.";
+        private const string ConnectionBrokenMessage = "Маршрутизатор не відповідає. SSH-з’єднання перервано. Будь ласка, підключіться знову, щоб продовжити роботу.";
 
         // Активний SSH-клієнт. Null означає, що підключення ще не створене або вже закрите.
         private SshClient? _ssh;
