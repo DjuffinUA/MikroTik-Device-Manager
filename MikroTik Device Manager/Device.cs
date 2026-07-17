@@ -14,12 +14,10 @@ namespace MikroTik_Device_Manager
         private readonly DeviceManager _form;
         // SSH-менеджер для запитів і змін на MikroTik.
         private readonly MikroTikManager _manager;
-        // Контроли, які приховуються до того моменту, поки lease не буде знайдений.
-        private readonly List<Control> controlsVisible;
-        // Контроли з текстом, який потрібно очищати при скиданні форми.
-        private readonly List<Control> controlsText;
-        // Зберігає Enabled-стан контролів під час асинхронного звернення до роутера.
-        private readonly Dictionary<Control, bool> _enabledStates = new();
+        // Поточний стан тимчасового блокування UI під час виконання SSH-команди.
+        private bool _isBusy;
+        // Останній успішно завантажений DHCP lease, який визначає доступні бізнес-дії.
+        private LeaseInfo? _currentLease;
         // Нормалізована MAC-адреса у форматі RouterOS: XX:XX:XX:XX:XX:XX.
         private string _MAC { get; set; } = string.Empty;
 
@@ -29,27 +27,6 @@ namespace MikroTik_Device_Manager
             _form = form;
             _manager = manager;
 
-            controlsVisible = new List<Control>
-            {
-                b_ClearForm,
-                L_AvailableAction,
-                b_MakeStatic,
-                b_RemoveIP,
-                b_RemoveAddressList,
-                b_AddAddressList,
-                L_AddressList,
-                L_AddAddressList,
-                comBox_AddAddressList,
-                L_IP,
-                L_IP_Now
-            };
-
-            controlsText = new List<Control>
-            {
-                tB_Monitor,
-                L_AddressList,
-                comBox_AddAddressList
-            };
             NullStatusForm();
         }
 
@@ -58,42 +35,69 @@ namespace MikroTik_Device_Manager
         /// </summary>
         private void NullStatusForm()
         {
-            foreach (Control control in controlsText)
-                control.Text = string.Empty;
-
-            foreach (Control control in controlsVisible)
-            {
-                control.Visible = false;
-                control.Enabled = false;
-            }
+            _currentLease = null;
+            tB_Monitor.Clear();
+            L_AddressList.Text = string.Empty;
+            L_IP_Now.Text = string.Empty;
+            comBox_AddAddressList.Text = string.Empty;
+            comBox_AddAddressList.Items.Clear();
+            UpdateControlsState();
         }
 
         /// <summary>
-        /// Блокує всі елементи форми на час виконання SSH-запиту.
+        /// Блокує взаємодію з формою на час виконання SSH-запиту.
         /// </summary>
         private void LockControls()
         {
-            _enabledStates.Clear();
-
-            foreach (Control control in Controls)
-            {
-                _enabledStates[control] = control.Enabled;
-                control.Enabled = false;
-            }
+            _isBusy = true;
+            UseWaitCursor = true;
+            UpdateControlsState();
         }
 
         /// <summary>
-        /// Відновлює доступність елементів після завершення SSH-запиту.
+        /// Знімає тимчасове блокування після SSH-запиту, не змінюючи бізнес-стан форми.
         /// </summary>
         private void UnlockControls()
         {
-            foreach (Control control in Controls)
-            {
-                if (_enabledStates.TryGetValue(control, out bool wasEnabled))
-                    control.Enabled = wasEnabled;
-            }
+            _isBusy = false;
+            UseWaitCursor = false;
+            UpdateControlsState();
+        }
 
-            _enabledStates.Clear();
+        /// <summary>
+        /// Єдине джерело істини для Visible/Enabled стану контролів відповідно до busy та lease-стану.
+        /// </summary>
+        private void UpdateControlsState()
+        {
+            bool hasLease = _currentLease is not null;
+            bool isStaticLease = hasLease && !_currentLease!.Dynamic;
+            bool hasAddressList = isStaticLease && _currentLease!.AddressList != "not list";
+            bool canAddAddressList = isStaticLease && !hasAddressList;
+            bool canInteract = !_isBusy;
+
+            tB_Mac.Enabled = canInteract;
+            b_Find.Enabled = canInteract;
+            tB_Monitor.Enabled = canInteract;
+
+            SetControlState(b_ClearForm, !string.IsNullOrEmpty(_MAC), canInteract);
+            SetControlState(L_TextBoard, hasLease, canInteract);
+            SetControlState(L_AvailableAction, hasLease, canInteract);
+            SetControlState(L_IP, hasLease, canInteract);
+            SetControlState(L_IP_Now, hasLease, canInteract);
+            SetControlState(L_AddAddressList, hasLease, canInteract);
+            SetControlState(L_AddressList, hasLease, canInteract);
+
+            SetControlState(b_MakeStatic, hasLease && _currentLease!.Dynamic, canInteract);
+            SetControlState(b_RemoveIP, isStaticLease, canInteract);
+            SetControlState(comBox_AddAddressList, canAddAddressList, canInteract);
+            SetControlState(b_AddAddressList, canAddAddressList, canInteract);
+            SetControlState(b_RemoveAddressList, hasAddressList, canInteract);
+        }
+
+        private static void SetControlState(Control control, bool visible, bool canInteract)
+        {
+            control.Visible = visible;
+            control.Enabled = visible && canInteract;
         }
 
         /// <summary>
@@ -167,8 +171,7 @@ namespace MikroTik_Device_Manager
                 return;
             }
 
-            b_ClearForm.Visible = true;
-            b_ClearForm.Enabled = true;
+            UpdateControlsState();
 
             var response = await _manager.ExecuteCommandWithResultAsync(
                 RouterCommands.GetDHCPLeaseByMAC(_MAC));
@@ -193,9 +196,6 @@ namespace MikroTik_Device_Manager
                 return;
             }
 
-            L_TextBoard.Visible = true;
-            L_TextBoard.Enabled = true;
-
             LeaseInfo lease = new(_MAC);
 
             if (!await lease.FillLeaseInfoAsync(_manager))
@@ -214,44 +214,14 @@ namespace MikroTik_Device_Manager
         /// </summary>
         private async Task FillLeaseInfoAsync(LeaseInfo lease)
         {
-            L_IP.Visible = true;
-            L_IP.Enabled = true;
-
             L_IP_Now.Text = lease.Ip;
-            L_IP_Now.Visible = true;
-            L_IP_Now.Enabled = true;
-
-            L_AddAddressList.Visible = true;
-            L_AddAddressList.Enabled = true;
-
             L_AddressList.Text = lease.AddressList;
-            L_AddressList.Visible = true;
-            L_AddressList.Enabled = true;
 
-            if (lease.Dynamic)
-            {
-                b_MakeStatic.Visible = true;
-                b_MakeStatic.Enabled = true;
-                return;
-            }
-
-            b_RemoveIP.Visible = true;
-            b_RemoveIP.Enabled = true;
-
-            if (lease.AddressList == "not list")
-            {
+            if (!lease.Dynamic && lease.AddressList == "not list")
                 await LoadAddressListsAsync();
 
-                comBox_AddAddressList.Visible = true;
-                comBox_AddAddressList.Enabled = true;
-
-                b_AddAddressList.Visible = true;
-                b_AddAddressList.Enabled = true;
-                return;
-            }
-
-            b_RemoveAddressList.Visible = true;
-            b_RemoveAddressList.Enabled = true;
+            _currentLease = lease;
+            UpdateControlsState();
         }
 
         /// <summary>
@@ -282,12 +252,11 @@ namespace MikroTik_Device_Manager
         /// <summary>
         /// Очищає форму та забуває поточну MAC-адресу.
         /// </summary>
-        private async void b_ClearForm_Click(object sender, EventArgs e)
+        private void b_ClearForm_Click(object sender, EventArgs e)
         {
-            await Task.CompletedTask;
-            NullStatusForm();
             _MAC = string.Empty;
             tB_Mac.Clear();
+            NullStatusForm();
         }
 
         /// <summary>
