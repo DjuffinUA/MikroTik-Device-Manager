@@ -60,6 +60,17 @@ namespace MikroTik_Device_Manager
             _mainForm.Show();
         }
 
+        private void HandleBrokenConnection()
+        {
+            MessageBox.Show(
+                "Router is not responding.\n\nThe SSH connection has been terminated.\n\nPlease reconnect to continue working.",
+                "SSH connection lost",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+
+            Close();
+        }
+
         /// <summary>
         /// Виконує команду RouterOS і виводить відповідь або помилку у поле результату.
         /// </summary>
@@ -70,11 +81,19 @@ namespace MikroTik_Device_Manager
             try
             {
                 var response = await _manager.ExecuteCommandWithResultAsync(command);
+
+                if (_manager.IsConnectionBroken)
+                {
+                    HandleBrokenConnection();
+                    return;
+                }
+
                 tB_Result.Text = response.Success ? response.Result : _manager.LastError;
             }
             finally
             {
-                UnlockControls();
+                if (!IsDisposed)
+                    UnlockControls();
             }
         }
 
