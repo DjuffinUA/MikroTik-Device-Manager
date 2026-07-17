@@ -122,6 +122,7 @@
             b_MakeStatic.TabIndex = 7;
             b_MakeStatic.Text = "Make Static";
             b_MakeStatic.UseVisualStyleBackColor = true;
+            b_MakeStatic.Click += b_MakeStatic_Click;
             // 
             // L_TextBoard
             // 
@@ -140,6 +141,7 @@
             b_RemoveIP.TabIndex = 9;
             b_RemoveIP.Text = "Remove IP";
             b_RemoveIP.UseVisualStyleBackColor = true;
+            b_RemoveIP.Click += b_RemoveIP_Click;
             // 
             // b_RemoveAddressList
             // 
@@ -149,6 +151,7 @@
             b_RemoveAddressList.TabIndex = 10;
             b_RemoveAddressList.Text = "Remove Address List";
             b_RemoveAddressList.UseVisualStyleBackColor = true;
+            b_RemoveAddressList.Click += b_RemoveAddressList_Click;
             // 
             // b_AddAddressList
             // 
@@ -158,6 +161,7 @@
             b_AddAddressList.TabIndex = 11;
             b_AddAddressList.Text = "Add";
             b_AddAddressList.UseVisualStyleBackColor = true;
+            b_AddAddressList.Click += b_AddAddressList_Click;
             // 
             // L_AddAddressList
             // 

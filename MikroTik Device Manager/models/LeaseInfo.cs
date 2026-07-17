@@ -17,7 +17,7 @@ namespace MikroTik_Device_Manager.models
 
         public string AddressList { get; set; } = "not list";
 
-        public bool FiilLeaseInfo(MikroTikManager manager)
+        public bool FillLeaseInfo(MikroTikManager manager)
         {
             string result = string.Empty;
             if (manager.ExecuteCommand(RouterCommands.GetLesesInfo(Mac), out result))

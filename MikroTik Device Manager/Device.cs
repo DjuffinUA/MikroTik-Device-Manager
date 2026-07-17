@@ -42,7 +42,6 @@ namespace MikroTik_Device_Manager
 
             controlsText = new List<Control>
             {
-                tB_Mac,
                 tB_Monitor,
                 L_AddressList,
                 comBox_AddAddressList
@@ -64,8 +63,6 @@ namespace MikroTik_Device_Manager
                     control.Visible = false;
                     control.Enabled = false;
                 }
-
-            _MAC = string.Empty;
         }
 
         private void Device_FormClosed(object sender, FormClosedEventArgs e)
@@ -91,145 +88,47 @@ namespace MikroTik_Device_Manager
             if (tmp.Count == 12)
             {
                 _MAC = $"{tmp[0]}{tmp[1]}:{tmp[2]}{tmp[3]}:{tmp[4]}{tmp[5]}:{tmp[6]}{tmp[7]}:{tmp[8]}{tmp[9]}:{tmp[10]}{tmp[11]}";
+                tB_Mac.Text = _MAC;
                 return true;
             }
             else
                 return false;
         }
 
-        private void b_Find_Click(object sender, EventArgs e)
+        private async void b_Find_Click(object sender, EventArgs e)
         {
-            //if(tB_Monitor.Text != string.Empty)
-            //    NullStatusForm();
-
-            //if (NormalizeMac())
-            //{
-
-            //    List<string>? splitText;
-            //    string tmp = string.Empty;
-            //    b_ClearForm.Visible = true;
-            //    b_ClearForm.Enabled = true;
-
-            //    if (_manager.ExecuteCommand(RouterCommands.GetDHCPLeaseByMAC(_MAC), out tmp))
-            //    {                    
-            //        splitText = tmp.Split(new[] { "\r\n" }, StringSplitOptions.None).ToList();
-            //        StringBuilder sb = new();
-
-            //        foreach (string line in splitText)
-            //            if (line.Length > 0)
-            //                sb.AppendLine(line);
-
-            //        if (sb.Length > 0)
-            //        {
-            //            L_TextBoard.Visible = true;
-            //            L_TextBoard.Enabled = true;
-
-            //            LeaseInfo lease = new LeaseInfo(_MAC);
-            //            if(!lease.FiilLeaseInfo(_manager))
-            //                sb.AppendLine(_manager.LastError);
-            //            else
-            //            {
-            //                sb.AppendLine(lease.ShowInfo());
-
-            //                L_IP.Visible = true;
-            //                L_IP.Enabled = true;
-            //                L_IP_Now.Text = lease.Ip;                            
-            //                L_IP_Now.Visible = true;
-            //                L_IP_Now.Enabled = true;
-
-            //                if (lease.Dynamic)
-            //                {
-            //                    b_MakeStatic.Visible = true;
-            //                    b_MakeStatic.Enabled = true;
-            //                }
-            //                else
-            //                {
-            //                    b_RemoveIP.Visible = true;
-            //                    b_RemoveIP.Enabled = true;
-
-            //                    if (lease.AddressList == "not list")
-            //                    {
-            //                        L_AddAddressList.Visible = true;
-            //                        L_AddAddressList.Enabled = true;
-            //                        L_AddressList.Text = lease.AddressList;
-            //                        L_AddressList.Visible = true;
-            //                        L_AddressList.Enabled = true;
-
-            //                        if (_manager.ExecuteCommand(RouterCommands.ListOfAddressLists(), out tmp))
-            //                        {
-            //                            splitText = tmp.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).Distinct().ToList();
-            //                            foreach (string line in splitText)
-            //                                if (line.Length > 0)
-            //                                    comBox_AddAddressList.Items.Add(line);
-            //                            comBox_AddAddressList.Visible = true;
-            //                            comBox_AddAddressList.Enabled = true;
-            //                            b_AddAddressList.Visible = true;
-            //                            b_AddAddressList.Enabled = true;
-            //                        }
-            //                        else
-            //                            sb.AppendLine(_manager.LastError);
-            //                    }
-            //                    else
-            //                    {
-            //                        L_AddAddressList.Visible = true;
-            //                        L_AddAddressList.Enabled = true;
-            //                        L_AddressList.Text = lease.AddressList;
-            //                        L_AddressList.Visible = true;
-            //                        L_AddressList.Enabled = true;
-
-            //                        b_RemoveAddressList.Visible = true;
-            //                        b_RemoveAddressList.Enabled = true;
-            //                    }
-            //                }
-            //            }                            
-
-            //            tB_Monitor.Text = sb.ToString(); // Display the result in the monitor text box
-            //        }
-            //        else
-            //            tB_Monitor.Text = "There is no device with this MAC address.";
-            //    }
-            //    else
-            //        tB_Monitor.Text = _manager.LastError;
-
-            //}
-            //else
-            //{
-            //    tB_Monitor.Text = "MAC address entry error";
-            //    return;
-            //}
-
-            RefreshLeaseInfo();
+            await RefreshLeaseInfoAsync();
         }
 
-        private void RefreshLeaseInfo()
+        private async Task RefreshLeaseInfoAsync()
         {
-            // Якщо форма вже містить інформацію,
-            // очищаємо її перед новим запитом.
-            if (tB_Monitor.Text != string.Empty)
-                NullStatusForm();
+            NullStatusForm();
 
-            // Перевіряємо правильність введеної MAC-адреси.
             if (!NormalizeMac())
             {
                 tB_Monitor.Text = "MAC address entry error";
                 return;
             }
 
-            List<string>? splitText;
             string tmp = string.Empty;
 
-            // Робимо доступною кнопку очищення форми.
             b_ClearForm.Visible = true;
             b_ClearForm.Enabled = true;
 
-            // Перевіряємо, чи існує запис DHCP.
-            if (!_manager.ExecuteCommand(RouterCommands.GetDHCPLeaseByMAC(_MAC), out tmp))
+            var response = await _manager.ExecuteCommandWithResultAsync(
+                RouterCommands.GetDHCPLeaseByMAC(_MAC));
+
+            if (!response.Success)
             {
                 tB_Monitor.Text = _manager.LastError;
                 return;
             }
 
-            splitText = tmp.Split(new[] { "\r\n" }, StringSplitOptions.None).ToList();
+            tmp = response.Result;
+
+            List<string> splitText = tmp
+                .Split(new[] { "\r\n" }, StringSplitOptions.None)
+                .ToList();
 
             StringBuilder sb = new();
 
@@ -239,7 +138,6 @@ namespace MikroTik_Device_Manager
                     sb.AppendLine(line);
             }
 
-            // Якщо DHCP Lease не знайдено.
             if (sb.Length == 0)
             {
                 tB_Monitor.Text = "There is no device with this MAC address.";
@@ -251,7 +149,7 @@ namespace MikroTik_Device_Manager
 
             LeaseInfo lease = new LeaseInfo(_MAC);
 
-            if (!lease.FiilLeaseInfo(_manager))
+            if (!lease.FillLeaseInfo(_manager))
             {
                 tB_Monitor.Text = _manager.LastError;
                 return;
@@ -311,17 +209,20 @@ namespace MikroTik_Device_Manager
             }
         }
 
-        private void LoadAddressLists()
+        private async Task LoadAddressListsAsync()
         {
             comBox_AddAddressList.Items.Clear();
 
-            if (!_manager.ExecuteCommand(RouterCommands.ListOfAddressLists(), out string result))
+            var response = await _manager.ExecuteCommandWithResultAsync(
+                RouterCommands.ListOfAddressLists());
+
+            if (!response.Success)
             {
                 tB_Monitor.Text = _manager.LastError;
                 return;
             }
 
-            List<string> splitText = result
+            List<string> splitText = response.Result
                 .Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries)
                 .Distinct()
                 .ToList();
@@ -333,6 +234,36 @@ namespace MikroTik_Device_Manager
         private void b_ClearForm_Click(object sender, EventArgs e)
         {
             NullStatusForm();
+            _MAC = string.Empty;
+            tB_Mac.Clear();
+        }
+
+        private void ExecuteAndRefresh(string command)
+        {
+            if (_manager.ExecuteCommand(command))
+                RefreshLeaseInfo();
+            else
+                tB_Monitor.AppendText(Environment.NewLine + _manager.LastError);
+        }
+
+        private void b_MakeStatic_Click(object sender, EventArgs e)
+        {
+            ExecuteAndRefresh(RouterCommands.MakeStatic(_MAC));
+        }
+
+        private void b_RemoveIP_Click(object sender, EventArgs e)
+        {
+            ExecuteAndRefresh(RouterCommands.RemoveLease(_MAC));
+        }
+
+        private void b_AddAddressList_Click(object sender, EventArgs e)
+        {
+            ExecuteAndRefresh(RouterCommands.SetAddressList(_MAC, comBox_AddAddressList.Text));
+        }
+
+        private void b_RemoveAddressList_Click(object sender, EventArgs e)
+        {
+            ExecuteAndRefresh(RouterCommands.ClearAddressList(_MAC));
         }
     }
 }
