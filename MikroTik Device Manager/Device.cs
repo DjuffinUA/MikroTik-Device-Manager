@@ -100,6 +100,27 @@ namespace MikroTik_Device_Manager
             control.Enabled = visible && canInteract;
         }
 
+        private void HandleBrokenConnection()
+        {
+            MessageBox.Show(
+                "Router is not responding.\n\nThe SSH connection has been terminated.\n\nPlease reconnect to continue working.",
+                "SSH connection lost",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+
+            Close();
+            _form.Close();
+        }
+
+        private bool StopIfConnectionBroken()
+        {
+            if (!_manager.IsConnectionBroken)
+                return false;
+
+            HandleBrokenConnection();
+            return true;
+        }
+
         /// <summary>
         /// Повертає керування батьківській формі після закриття пошуку за MAC.
         /// </summary>
@@ -154,7 +175,8 @@ namespace MikroTik_Device_Manager
             }
             finally
             {
-                UnlockControls();
+                if (!IsDisposed)
+                    UnlockControls();
             }
         }
 
@@ -178,6 +200,9 @@ namespace MikroTik_Device_Manager
 
             if (!response.Success)
             {
+                if (StopIfConnectionBroken())
+                    return;
+
                 tB_Monitor.Text = _manager.LastError;
                 return;
             }
@@ -200,12 +225,19 @@ namespace MikroTik_Device_Manager
 
             if (!await lease.FillLeaseInfoAsync(_manager))
             {
+                if (StopIfConnectionBroken())
+                    return;
+
                 tB_Monitor.Text = _manager.LastError;
                 return;
             }
 
             sb.AppendLine(lease.ShowInfo());
             await FillLeaseInfoAsync(lease);
+
+            if (StopIfConnectionBroken())
+                return;
+
             tB_Monitor.Text = sb.ToString();
         }
 
@@ -218,7 +250,12 @@ namespace MikroTik_Device_Manager
             L_AddressList.Text = lease.AddressList;
 
             if (!lease.Dynamic && lease.AddressList == "not list")
+            {
                 await LoadAddressListsAsync();
+
+                if (StopIfConnectionBroken())
+                    return;
+            }
 
             _currentLease = lease;
             UpdateControlsState();
@@ -236,6 +273,9 @@ namespace MikroTik_Device_Manager
 
             if (!response.Success)
             {
+                if (StopIfConnectionBroken())
+                    return;
+
                 tB_Monitor.Text = _manager.LastError;
                 return;
             }
@@ -270,12 +310,15 @@ namespace MikroTik_Device_Manager
             {
                 if (await _manager.ExecuteCommandAsync(command))
                     await RefreshLeaseInfoCoreAsync();
+                else if (StopIfConnectionBroken())
+                    return;
                 else
                     tB_Monitor.AppendText(Environment.NewLine + _manager.LastError);
             }
             finally
             {
-                UnlockControls();
+                if (!IsDisposed)
+                    UnlockControls();
             }
         }
 
