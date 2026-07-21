@@ -88,6 +88,7 @@
             // 
             // comBox_AddAddressList
             // 
+            comBox_AddAddressList.DropDownStyle = ComboBoxStyle.DropDownList;
             comBox_AddAddressList.FormattingEnabled = true;
             comBox_AddAddressList.Location = new Point(12, 691);
             comBox_AddAddressList.Name = "comBox_AddAddressList";

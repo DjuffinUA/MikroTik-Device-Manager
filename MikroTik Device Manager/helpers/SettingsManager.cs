@@ -17,32 +17,56 @@ namespace MikroTik_Device_Manager.helpers
         /// <summary>
         /// Серіалізує список підключень у JSON і записує його на диск.
         /// </summary>
-        private static void Save(List<ConnectionInfo> connections)
+        private static bool TrySave(List<ConnectionInfo> connections, out string error)
         {
-            string json = JsonSerializer.Serialize(connections, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                }
-            );
+            try
+            {
+                string json = JsonSerializer.Serialize(connections, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    }
+                );
 
-            File.WriteAllText(settingsFilePath, json);
+                File.WriteAllText(settingsFilePath, json);
+                error = string.Empty;
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                error = $"Unable to save settings.json: {ex.Message}";
+                return false;
+            }
         }
 
         /// <summary>
         /// Читає збережені підключення; якщо файл відсутній або порожній — повертає порожній список.
         /// </summary>
-        public static List<ConnectionInfo> Load()
+        public static bool TryLoad(out List<ConnectionInfo> connections, out string error)
         {
-            if (!File.Exists(settingsFilePath))
-                return new List<ConnectionInfo>();
+            try
+            {
+                if (!File.Exists(settingsFilePath))
+                {
+                    connections = new List<ConnectionInfo>();
+                    error = string.Empty;
+                    return true;
+                }
 
-            string json = File.ReadAllText(settingsFilePath);
+                string json = File.ReadAllText(settingsFilePath);
 
-            if (string.IsNullOrWhiteSpace(json))
-                return new List<ConnectionInfo>();
+                connections = string.IsNullOrWhiteSpace(json)
+                    ? new List<ConnectionInfo>()
+                    : JsonSerializer.Deserialize<List<ConnectionInfo>>(json) ?? new List<ConnectionInfo>();
 
-            return JsonSerializer.Deserialize<List<ConnectionInfo>>(json)
-                   ?? new List<ConnectionInfo>();
+                error = string.Empty;
+                return true;
+            }
+            catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+            {
+                connections = new List<ConnectionInfo>();
+                error = $"Unable to read settings.json: {ex.Message}";
+                return false;
+            }
         }
 
         /// <summary>
@@ -56,21 +80,35 @@ namespace MikroTik_Device_Manager.helpers
         /// <summary>
         /// Створює порожній JSON-файл для першого запуску застосунку.
         /// </summary>
-        public static void CreateJsonFile()
+        public static bool TryCreateJsonFile(out string error)
         {
-            File.WriteAllText(settingsFilePath, []);
+            if (File.Exists(settingsFilePath))
+            {
+                error = string.Empty;
+                return true;
+            }
+
+            return TrySave([], out error);
         }
 
         /// <summary>
         /// Додає нове підключення, якщо такого IP+Login ще немає, і одразу зберігає список.
         /// </summary>
-        public static void AddConnectionInfo(List<ConnectionInfo> connections, ConnectionInfo info)
+        public static bool TryAddConnectionInfo(List<ConnectionInfo> connections, ConnectionInfo info, out string error)
         {
-            if (!connections.Exists(c => c.Ip == info.Ip && c.Login == info.Login))
+            if (connections.Exists(c => c.Ip == info.Ip && c.Login == info.Login))
             {
-                connections.Add(info);
-                Save(connections);
-            }            
+                error = string.Empty;
+                return true;
+            }
+
+            List<ConnectionInfo> updatedConnections = new(connections) { info };
+
+            if (!TrySave(updatedConnections, out error))
+                return false;
+
+            connections.Add(info);
+            return true;
         }
     }
 }

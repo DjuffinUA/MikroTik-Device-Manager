@@ -68,7 +68,12 @@ namespace MikroTik_Device_Manager.helpers
         /// </summary>
         public static string SetAddressList(string mac, string list)
         {
-            return $"/ip dhcp-server lease set [find where mac-address=\"{mac}\"] address-lists={list}";
+            string escapedList = list
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("$", "\\$");
+
+            return $"/ip dhcp-server lease set [find where mac-address=\"{mac}\"] address-lists=\"{escapedList}\"";
         }
 
         /// <summary>

@@ -25,6 +25,7 @@ namespace MikroTik_Device_Manager.managers
     {
         private const int NormalTimeoutSeconds = 3;
         private const int CriticalTimeoutSeconds = 15;
+        private const string ConnectionFailedMessage = "Unable to establish SSH connection. Please check the connection details and try again.";
         private const string ConnectionBrokenMessage = "Маршрутизатор не відповідає. SSH-з’єднання перервано. Будь ласка, підключіться знову, щоб продовжити роботу.";
 
         // Активний SSH-клієнт. Null означає, що підключення ще не створене або вже закрите.
@@ -43,21 +44,31 @@ namespace MikroTik_Device_Manager.managers
         /// </summary>
         public bool ConnectSSH()
         {
-            Disconnect();
-            State = ConnectionState.Connecting;
-            _ssh = new SshClient(info.Ip, info.Login, info.Password);
-
             try
             {
+                Disconnect();
+                State = ConnectionState.Connecting;
                 LastError = "";
-                _ssh.Connect();
-                State = IsConnected() ? ConnectionState.Connected : ConnectionState.Disconnected;
-                return State == ConnectionState.Connected;
+
+                SshClient ssh = new(info.Ip, info.Login, info.Password);
+                _ssh = ssh;
+                ssh.Connect();
+
+                if (!ssh.IsConnected)
+                {
+                    ReleaseSshClient();
+                    State = ConnectionState.Disconnected;
+                    LastError = ConnectionFailedMessage;
+                    return false;
+                }
+
+                State = ConnectionState.Connected;
+                return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                LastError = ex.Message;
-                DisposeSshClient();
+                LastError = ConnectionFailedMessage;
+                ReleaseSshClient();
                 State = ConnectionState.Disconnected;
                 return false;
             }
@@ -74,7 +85,15 @@ namespace MikroTik_Device_Manager.managers
         /// </summary>
         public bool IsConnected()
         {
-            return _ssh is not null && _ssh.IsConnected;
+            try
+            {
+                return _ssh is not null && _ssh.IsConnected;
+            }
+            catch (Exception)
+            {
+                BreakConnection();
+                return false;
+            }
         }
 
         /// <summary>
@@ -82,32 +101,49 @@ namespace MikroTik_Device_Manager.managers
         /// </summary>
         public void Disconnect()
         {
-            DisposeSshClient();
+            ReleaseSshClient();
             State = ConnectionState.Disconnected;
         }
 
-        private void DisposeSshClient()
+        private void ReleaseSshClient()
         {
-            if (_ssh == null)
+            SshClient? ssh = Interlocked.Exchange(ref _ssh, null);
+
+            if (ssh is null)
                 return;
 
+            _ = Task.Run(() => DisposeSshClientSilently(ssh));
+        }
+
+        private static void DisposeSshClientSilently(SshClient ssh)
+        {
             try
             {
-                if (_ssh.IsConnected)
-                    _ssh.Disconnect();
+                if (ssh.IsConnected)
+                    ssh.Disconnect();
+            }
+            catch (Exception)
+            {
+                // Під час примусового закриття сесії UI не повинен очікувати на мережеву помилку.
             }
             finally
             {
-                _ssh.Dispose();
+                try
+                {
+                    ssh.Dispose();
+                }
+                catch (Exception)
+                {
+                    // Ресурс уже недоступний; подальша робота з цією сесією неможлива.
+                }
             }
-            _ssh = null;
         }
 
         private void BreakConnection()
         {
             LastError = ConnectionBrokenMessage;
             State = ConnectionState.Broken;
-            DisposeSshClient();
+            ReleaseSshClient();
         }
 
         #endregion
@@ -130,8 +166,7 @@ namespace MikroTik_Device_Manager.managers
 
                 if (!IsConnected())
                 {
-                    LastError = "SSH-з'єднання не встановлено.";
-                    State = ConnectionState.Disconnected;
+                    BreakConnection();
                     return failureResult;
                 }
 
@@ -159,7 +194,12 @@ namespace MikroTik_Device_Manager.managers
             finally
             {
                 if (State == ConnectionState.Busy)
-                    State = IsConnected() ? ConnectionState.Connected : ConnectionState.Disconnected;
+                {
+                    if (IsConnected())
+                        State = ConnectionState.Connected;
+                    else
+                        BreakConnection();
+                }
 
                 _sshOperationLock.Release();
             }
@@ -171,9 +211,9 @@ namespace MikroTik_Device_Manager.managers
             {
                 return await operationTask;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                LastError = ex.Message;
+                BreakConnection();
                 return failureResult;
             }
         }

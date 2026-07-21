@@ -11,6 +11,8 @@ namespace MikroTik_Device_Manager
     {
         // Кеш збережених підключень, який синхронізується з settings.json.
         private List<ConnectionInfo> connections = new List<ConnectionInfo>();
+        // Якщо settings.json неможливо безпечно прочитати або записати, робочі дії форми блокуються.
+        private bool _settingsError;
         // Запам'ятовує попередній стан Enabled для контролів під час довгих SSH-операцій.
         private readonly Dictionary<Control, bool> _enabledStates = new();
 
@@ -29,8 +31,7 @@ namespace MikroTik_Device_Manager
             tB_Password.Clear();
             tB_Comment.Clear();
             L_Warning.Text = "";
-            listBox_LoginIP.Items.Clear();
-            LoadItemListBox();
+            PopulateConnectionList();
         }
 
         /// <summary>
@@ -59,6 +60,26 @@ namespace MikroTik_Device_Manager
             }
 
             _enabledStates.Clear();
+
+            if (_settingsError)
+            {
+                foreach (Control control in Controls)
+                    control.Enabled = false;
+
+                L_Warning.Enabled = true;
+            }
+        }
+
+        private void ShowSettingsError(string error)
+        {
+            _settingsError = true;
+            L_Warning.ForeColor = Color.Red;
+            L_Warning.Text = error;
+
+            foreach (Control control in Controls)
+                control.Enabled = false;
+
+            L_Warning.Enabled = true;
         }
 
         /// <summary>
@@ -90,8 +111,15 @@ namespace MikroTik_Device_Manager
             {
                 if (await manager.ConnectSSHAsync())
                 {
+                    if (!SettingsManager.TryAddConnectionInfo(connections, info, out string settingsError))
+                    {
+                        manager.Disconnect();
+                        ShowSettingsError(settingsError);
+                        return;
+                    }
+
+                    L_Warning.ForeColor = SystemColors.ControlText;
                     L_Warning.Text = "Connected successfully!";
-                    SettingsManager.AddConnectionInfo(connections, info);
                     DeviceManager dm = new DeviceManager(this, manager);
                     dm.Show();
                     ClearControls();
@@ -113,19 +141,27 @@ namespace MikroTik_Device_Manager
         /// </summary>
         private void Main_Load(object sender, EventArgs e)
         {
-            if(SettingsManager.SettingsFileExists()) 
-                LoadItemListBox();
-            else
-                SettingsManager.CreateJsonFile();
+            if (!SettingsManager.TryCreateJsonFile(out string createError))
+            {
+                ShowSettingsError(createError);
+                return;
+            }
+
+            if (!SettingsManager.TryLoad(out connections, out string loadError))
+            {
+                ShowSettingsError(loadError);
+                return;
+            }
+
+            PopulateConnectionList();
         }
 
         /// <summary>
         /// Перечитує список підключень із файлу та показує їх у ListBox.
         /// </summary>
-        private void LoadItemListBox()
+        private void PopulateConnectionList()
         {
             listBox_LoginIP.Items.Clear();
-            connections = SettingsManager.Load();
             for (int i = 0; i < connections.Count; i++)
                 listBox_LoginIP.Items.Add(connections[i].Ip + "; " + connections[i].Login + "; " + connections[i].Comment + ";");
             listBox_LoginIP.ClearSelected();
